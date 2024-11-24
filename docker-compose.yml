@@ -1,0 +1,33 @@
+version: '2.2'
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: postgres-db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: tars
+      POSTGRES_USER: tars
+      POSTGRES_PASSWORD: tars
+    healthcheck:
+      test: [ 'CMD', 'pg_isready', "-q", "-d", "tars", "-U", "tars" ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+      timeout: 5s
+
+  postgres-db-test:
+    image: postgres:latest
+    container_name: postgres-db_test
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: tars-test
+      POSTGRES_USER: tars
+      POSTGRES_PASSWORD: tars
+    healthcheck:
+      test: [ 'CMD', 'pg_isready', "-q", "-d", "tars-test", "-U", "tars" ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+      timeout: 5s

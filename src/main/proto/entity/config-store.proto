@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_package = "grpc.entity.DeviceProvisioning";
+option java_outer_classname = "DeviceProvisioning";
+
+
+service ConfigStoreService {
+
+  rpc ShowConfig(ConfigId) returns (Configuration) {}
+
+}
+
+message ConfigId {
+  string id = 1;
+}
+
+message Configuration {
+  string config = 1;
+}
