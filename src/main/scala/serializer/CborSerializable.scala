@@ -1,3 +1,0 @@
-package serializer
-
-trait CborSerializable

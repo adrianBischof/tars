@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+option java_package = "grpc.entity.DeviceProvisioning";
+option java_outer_classname = "DeviceProvisioning";
+
+
+// TODO: Add a gRPC stream to send device sensor readings
+
+service DeviceProvisioningService {
+
+  rpc AddGRPCConfig(gRPC) returns (Response) {}
+  rpc RemoveGRPCConfig(ID) returns (Response) {}
+
+  rpc AddBrokerConfig(MQTT) returns (Response) {}
+  rpc RemoveBrokerConfig(ID) returns (Response) {}
+
+  rpc GetBrokerConfig(ID) returns (MQTTConfigResponse) {}
+  rpc GetGrpcConfig(ID) returns (gRPCConfigResponse) {}
+
+}
+
+message gRPC {
+  string device_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string location = 4;
+}
+
+message MQTT {
+  string device_id = 1;
+  string name = 2;
+  string location = 3;
+  string server = 4;
+  bool cleanSession = 5;                // default false
+  bool autoReconnect = 6;               // default false
+  repeated string topics = 7;
+  string provision_service = 8;         //set by system
+  int32 backpressure = 10;
+  string tenant_id = 11;
+}
+
+message ID {
+  string device_id = 1;
+  string tenant_id = 2;
+}
+
+message Response {
+  string status = 1;
+  string payload = 2;
+}
+
+message MQTTConfigResponse {
+  string status = 1;
+  MQTT config = 2;
+}
+
+message gRPCConfigResponse {
+  string status = 1;
+  gRPC config = 2;
+}

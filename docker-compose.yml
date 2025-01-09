@@ -16,18 +16,22 @@ services:
       start_period: 5s
       timeout: 5s
 
-  postgres-db-test:
-    image: postgres:latest
-    container_name: postgres-db_test
+  eclipse-mosquitto:
+    stdin_open: true
+    tty: true
     ports:
-      - 5433:5432
-    environment:
-      POSTGRES_DB: tars-test
-      POSTGRES_USER: tars
-      POSTGRES_PASSWORD: tars
+      - 1883:1883
+      - 9001:9001
+    restart: unless-stopped
+    container_name: mosquitto
+    volumes:
+      - /mosquitto/config:/mosquitto/config
+      - /mosquitto/data:/mosquitto/data
+      - /mosquitto/log:/mosquitto/log
+    image: eclipse-mosquitto
     healthcheck:
-      test: [ 'CMD', 'pg_isready', "-q", "-d", "tars-test", "-U", "tars" ]
-      interval: 5s
-      retries: 5
-      start_period: 5s
-      timeout: 5s
+      test: [ "CMD-SHELL", "mosquitto -c /mosquitto/config/mosquitto.conf -v > /dev/null 2>&1 || exit 1" ]
+      interval: 10s
+      retries: 3
+      start_period: 10s
+      timeout: 3s

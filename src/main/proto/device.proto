@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option java_package = "grpc.projection.DeviceRecords";
+option java_outer_classname = "DeviceRecords";
+
+
+service DeviceRecords {
+  rpc GetLatestRecord(Device) returns (Record) {}
+  // ... other statistics
+}
+
+
+message Device {
+  string device_id = 1;
+  optional string device_name = 2;
+  string tenant_id = 3;
+}
+
+message Record {
+  Device device = 2;
+  string data  =1;
+  string timestamp = 3;
+  string info = 4;
+  
+}

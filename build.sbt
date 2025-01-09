@@ -4,17 +4,10 @@ ThisBuild / scalaVersion := "3.3.1"
 
 ThisBuild / dynverSeparator := "-"
 
-Test / parallelExecution := false
-Test / testOptions += Tests.Argument("-oDF")
-Test / logBuffered := false
-
-run / fork := true
 
 // This will ensure that whenever sbt commands is run, the local1.conf/local2.conf ... configuration is picked up.
-//run / javaOptions ++= sys.props.get("config.resource").map(res => s"-Dconfig.resource=$res").toSeq
+run / javaOptions ++= sys.props.get("config.resource").map(res => s"-Dconfig.resource=$res").toSeq
 
-// ctrl-c
-Global / cancelable := false
 
 
 lazy val LogbackVersion = "1.5.6"
@@ -33,16 +26,10 @@ lazy val circeVersion = "0.14.9"
 resolvers += "Akka library repository".at("https://repo.akka.io/maven")
 
 lazy val root = (project in file("."))
-  .enablePlugins(AkkaGrpcPlugin, Cinnamon)
+  .enablePlugins(AkkaGrpcPlugin)
   .settings(
     name := "tars",
     libraryDependencies ++= Seq(
-
-      Cinnamon.library.cinnamonAkka,
-      Cinnamon.library.cinnamonAkkaHttp,
-      Cinnamon.library.cinnamonJvmMetricsProducer,
-      Cinnamon.library.cinnamonOpenTelemetry,
-
       // processing json
       "org.scala-lang" %% "toolkit" % "0.1.7",
 
@@ -97,10 +84,3 @@ lazy val root = (project in file("."))
 
 
   )
-
-cinnamonSuppressRepoWarnings := true
-// Add the Cinnamon Agent for run and test
-run / cinnamon := true
-test / cinnamon := true
-// Set the Cinnamon Agent log level
-cinnamonLogLevel := "INFO"

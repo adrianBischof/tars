@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_package = "grpc.entity.DeviceProvisioning";
+option java_outer_classname = "DeviceProvisioning";
+
+service CommandService {
+
+  rpc SendCommandToDevice(CommandRequest) returns (CommandResponse) {}
+
+}
+
+message CommandRequest {
+  string device_id = 1;
+  string tenant_id = 2;
+  string command = 3;
+  optional string webhook_url = 4;
+}
+
+message CommandResponse {
+  string status = 1;
+  string payload = 2;
+}

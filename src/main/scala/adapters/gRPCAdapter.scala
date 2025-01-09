@@ -1,5 +1,0 @@
-package adapters
-
-class gRPCAdapter() {
-
-}

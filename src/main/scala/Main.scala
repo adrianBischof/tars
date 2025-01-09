@@ -1,27 +1,32 @@
-import org.slf4j.LoggerFactory
-import server.SourceAggregateServer
+import org.slf4j.{Logger, LoggerFactory}
 import akka.persistence.jdbc.testkit.scaladsl.SchemaUtils
 
 import scala.util.control.NonFatal
 import scala.concurrent.ExecutionContext
 import akka.actor.typed.scaladsl.Behaviors
-import repository.scalike.ScalikeJdbcSetup
 import akka.cluster.sharding.typed.scaladsl.*
 import akka.management.scaladsl.AkkaManagement
 import akka.actor.typed.ActorSystem
-import projection.to.jdbc.{JDBCSourceProjection, JDBCSourceRepository, ProjectionFactory, SourceProjectionServer}
+import akka.cluster.sharding.typed.ShardedDaemonProcessSettings
+import akka.projection.ProjectionBehavior
+import core.projection.to.jdbc.{MqttConnectionManagerProjection, MqttConnectionManagerRepositoryImpl}
+import core.repository.scalike.ScalikeJdbcSetup
+import core.services.query.MqttConnectionManagerQueryImpl
 import scalikejdbc.{GlobalSettings, LoggingSQLAndTimeSettings}
-import service.DeviceProvisioningService
+import core.services.{Command, IoTProvisioning, Query}
+
 object Main {
 
-  val logger = LoggerFactory.getLogger(Main.toString)
+  val logger: Logger = LoggerFactory.getLogger(Main.toString)
 
   def main(args: Array[String]): Unit = {
 
-    implicit val system: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "system-supervisor") // must be same as in the config
+    implicit val system: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "middleware-supervisor") // must be same as in the config
 
     try {
       val sharding: ClusterSharding = ClusterSharding(system)
+
+      
       implicit val ec: ExecutionContext = system.executionContext
 
       GlobalSettings.loggingSQLAndTime = LoggingSQLAndTimeSettings(
@@ -29,23 +34,37 @@ object Main {
         singleLineMode = true,
         logLevel = "debug"
       )
-
-
+      
       AkkaManagement(system).start()
+      
+      
       // ClusterBootstrap(system).start() TODO: when forming a cluster use Akka Discovery without seed node definition in application.conf
       ScalikeJdbcSetup.init(system)
-
       SchemaUtils.createIfNotExists()
-      // --------------- GRPC Service
-      SourceAggregateServer.start(system, sharding, ec)
-      DeviceProvisioningService.start(system, sharding, ec)
-      // Other Services for other functionalities
-      // --------------- GRPC Service
+      
+      IoTProvisioning.start(system, sharding, ec)
+      Command.start(system, sharding, ec) // CQRS: WRITE Side
 
 
-      val sourceRepository = new JDBCSourceRepository()
-      SourceProjectionServer.start(sourceRepository) // CQRS: READ Side
-      ProjectionFactory.initProjection(system)
+
+      val repo = new MqttConnectionManagerQueryImpl(system)
+      Query.start(repo) // CQRS: READ Side
+      //ProjectionFactory.initProjection(system)
+
+      ShardedDaemonProcess(system).init(
+        name = "device-state-projection",
+        3,
+        index =>
+          ProjectionBehavior(
+            MqttConnectionManagerProjection.createProjectionFor(
+              system,
+              new MqttConnectionManagerRepositoryImpl(),
+              index
+            )
+          ),
+        ShardedDaemonProcessSettings(system),
+        Some(ProjectionBehavior.Stop)
+      )
 
     } catch {
       case NonFatal(e) =>
