@@ -12,7 +12,8 @@ import core.services.connectors.{Connectable, ConnectionManagerEntity}
 import grpc.entity.DeviceProvisioning.MQTT
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime}
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,7 +49,8 @@ class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManag
     val actorSink = ActorSink.actorRefWithBackpressure(
       ref = connectionManagerRef,
       messageAdapter = (responseActorRef: ActorRef[ConnectionManagerEntity.Ack], data: MqttMessage) => {
-        ConnectionManagerEntity.ProcessRecord(config.deviceId, config.tenantId, config.name, data.payload.utf8String, data.topic, LocalDateTime.now(), responseActorRef)
+        val timestamp_start = System.nanoTime()
+        ConnectionManagerEntity.ProcessRecord(config.deviceId, config.tenantId, config.name, data.payload.utf8String, data.topic, timestamp_start , responseActorRef)
       },
       onInitMessage = (responseActorRef: ActorRef[ConnectionManagerEntity.Ack]) => ConnectionManagerEntity.Init(responseActorRef),
       ackMessage = ConnectionManagerEntity.Ack,

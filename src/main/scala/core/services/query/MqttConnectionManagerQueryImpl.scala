@@ -22,7 +22,7 @@ class MqttConnectionManagerQueryImpl(system: ActorSystem[_]) extends DeviceRecor
              """.map{ result =>
             Record(
               data = result.string("data"),
-              timestamp = result.string("timestamp"),
+              timestamp = result.string("timestamp_start"),
               info = result.string("info"),
               device = Some(Device(deviceId = result.string("device_id"), deviceName = Some(result.string("device_name")))))
           }.list.apply().last

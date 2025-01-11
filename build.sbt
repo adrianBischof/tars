@@ -80,7 +80,9 @@ lazy val root = (project in file("."))
 
       "com.lightbend.akka" %% "akka-stream-alpakka-influxdb" % "8.0.0",
 
-    )
+    ),
+
+    run / fork := true
 
 
   )

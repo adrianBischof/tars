@@ -14,9 +14,8 @@ class MqttConnectionManagerEventHandler(repository: MqttConnectionManagerReposit
   override def process(session: ScalikeJdbcSession, envelope: EventEnvelope[ConnectionManagerEntity.Event]): Unit = {
     
     envelope.event match
-      case ConnectionManagerEntity.RecordProcessed(deviceId, tenantId, device_name, data, info, timestamp) =>
-        logger.debug("in match", envelope.event)        
-        repository.insertRecord(deviceId, tenantId, device_name, data, info, timestamp, session)
+      case ConnectionManagerEntity.RecordProcessed(deviceId, tenantId, device_name, data, info, timestamp_start, timestamp_end) =>
+        repository.insertRecord(deviceId, tenantId, device_name, data, info, timestamp_start, timestamp_end, session)
       case x =>
         logger.debug("ignoring event {} in projection.", x)
   }

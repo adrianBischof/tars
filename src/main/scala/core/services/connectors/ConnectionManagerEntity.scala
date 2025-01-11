@@ -6,11 +6,10 @@ import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
 import akka.stream.{Materializer, SystemMaterializer}
-
 import core.serializer.CborSerializable
 import core.services.connectors.mqtt.MQTTConnector
 
-import java.time.LocalDateTime
+import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
@@ -29,7 +28,7 @@ object ConnectionManagerEntity {
         eventHandler = (state, event) => eventHandler(state, event, ctx)
       )
         .withTagger(_ => Set(calculateTag(tenantId, tags)))
-        .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 5))
+        //.withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 5))
         .onPersistFailure(
           SupervisorStrategy.restartWithBackoff(
             minBackoff = 10.seconds,
@@ -45,9 +44,9 @@ object ConnectionManagerEntity {
       case Init(ackTo) => initStream(ackTo)
       case Complete => streamComplete()(ctx)
       case Fail(ex) => streamFailed(ex)(ctx)
-      case ProcessRecord(deviceId, tenantId, deviceName, data, info, timestamp, replyTo) =>
-        ctx.log.info(s"Got data $tenantId, $data")
-        persistData(deviceId, tenantId, deviceName, data, info, timestamp, replyTo)
+      case ProcessRecord(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo) =>
+        //ctx.log.info(s"Got sensor_reading from $tenantId, $deviceId with $data and Timestamp Start: $timestampStart")
+        persistData(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo)
       case InstantiateMqttConnector(config, replyTo) =>
         //instantiateMqttConnector(config, ctx)
         Effect.persist(PersistedConnection(config)).thenReply(replyTo)(_ => SuccessEvent("Created Connector"))
@@ -58,8 +57,8 @@ object ConnectionManagerEntity {
 
   private def eventHandler(state: State, event: Event, ctx: ActorContext[Command]): State = {
     event match
-      case RecordProcessed(deviceId, tenantId, device_name, data, info, timestamp) => state.updateData(deviceId + tenantId, data)
-      
+      case RecordProcessed(deviceId, tenantId, device_name, data, info, timestampStart, timestampEnd) => state.updateData(deviceId + tenantId, data)
+
       case PersistedConnection(config) =>
         implicit val system: ActorSystem[_] = ctx.system
         implicit val ec: ExecutionContext = ctx.executionContext
@@ -82,8 +81,8 @@ object ConnectionManagerEntity {
     Effect.persist(CommandSentToDevice(deviceId, message)).thenReply(replyTo)(_ => SuccessEvent("ok"))
   }
 
-  private def persistData(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestamp: LocalDateTime, replyTo: ActorRef[Ack]): Effect[Event, State] = {
-    Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestamp)).thenReply(replyTo)(_ => Ack)
+  private def persistData(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]): Effect[Event, State] = {
+    Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestampStart, System.nanoTime())).thenReply(replyTo)(_ => Ack)
   }
 
   private def initStream(replyTo: ActorRef[Ack]): Effect[Event, State] = {
@@ -114,7 +113,7 @@ object ConnectionManagerEntity {
 
   sealed trait Command extends CborSerializable
   case class InstantiateMqttConnector(config: MqttConfig, replyTo: ActorRef[Response]) extends Command
-  final case class ProcessRecord(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestamp: LocalDateTime, replyTo: ActorRef[Ack]) extends Command
+  final case class ProcessRecord(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]) extends Command
   case class Init(ackTo: ActorRef[Ack]) extends Command
   case class Fail(ex: Throwable) extends Command
   case object Complete extends Command
@@ -130,7 +129,7 @@ object ConnectionManagerEntity {
   object Ack extends Ack
 
   trait Event extends CborSerializable
-  case class RecordProcessed(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestamp: LocalDateTime) extends Event
+  case class RecordProcessed(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, timestampEnd: Long) extends Event
   private case class PersistedConnection(config: MqttConfig) extends Event
   private case class DeletedMqttConnection(deviceId: String) extends Event
   private case class CommandSentToDevice(deviceId: String, message: String) extends Event

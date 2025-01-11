@@ -2,7 +2,9 @@ package sdk
 
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.ShardedDaemonProcessSettings
+import akka.cluster.sharding.ShardRegion.CurrentShardRegionState
+import akka.cluster.sharding.typed.{GetClusterShardingStats, ShardedDaemonProcessSettings}
+import akka.cluster.sharding.typed.javadsl.EntityTypeKey
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, ShardedDaemonProcess}
 import akka.management.scaladsl.AkkaManagement
 import akka.persistence.jdbc.testkit.scaladsl.SchemaUtils
@@ -11,7 +13,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import core.projection.to.jdbc.{MqttConnectionManagerProjection, MqttConnectionManagerRepositoryImpl}
 import core.repository.scalike.ScalikeJdbcSetup
-import core.services.connectors.{ConfigurationEntity, ConfigurationValue, GrpcConfig, MqttConfig}
+import core.services.connectors.{ConfigurationEntity, ConfigurationValue, ConnectionManagerEntity, GrpcConfig, MqttConfig}
 import core.services.query.MqttConnectionManagerQueryImpl
 import core.services.{Command, CommandAPI, IoTProvisioning, IoTProvisioningAPI, Query}
 import grpc.entity.DeviceProvisioning.{CommandRequest, CommandResponse, MQTT}
@@ -44,6 +46,9 @@ class MiddlewareBuilder(appConfig: String) {
   SchemaUtils.createIfNotExists()
 
   IoTProvisioning.start(system, sharding, eC)
+
+
+
 
   def withDevice(in: ConfigurationValue): Unit = {
 
@@ -102,26 +107,26 @@ class MiddlewareBuilder(appConfig: String) {
 
 @main
 def SDK(): Unit = {
-
-  val config = MqttConfig(MQTT(deviceId = "Shelly5", name = "Shelly HT", location = "Room", server = "tcp://78.47.113.0", cleanSession = false, autoReconnect = true, topics = Seq("shellyplusht-e86beae8d784/status/temperature:0"), provisionService = "???", backpressure = 15, tenantId = "tenant"))
+/*
+  val config = MqttConfig(MQTT(deviceId = "Shelly", tenantId= "Home" server = "tcp://78.47.113.0", topics = Seq("shellyplusht-e86beae8d784/status/temperature:0"), tenantId = "tenant"))
+  val device = Device(deviceId="Shelly5", tenantId="tenant")
 
   val sdk = new MiddlewareBuilder("application.conf")
 
   sdk.withDevice(config)
   sdk.withQueryService()
-  val a = sdk.withCommandService()
-
-  val device = Device(deviceId="Shelly5", tenantId="tenant")
-  val request = CommandRequest("Shelly5", "tenant", "hoppel hase", Some("www.test.com"))
-
+  sdk.withCommandService()
+  
+  // Simple Control Loop
   while (true) {
     Thread.sleep(5000)
     val res = Await.result(sdk.getLatestReading(device), 2.seconds)
 
-    if res.equals("{\"id\": 0, \"tC\": 22.8, \"tF\": 73.0}") then
-      print("got response sending command")
-      val c = Await.result(sdk.sendCommand(request, a), 2.seconds)
+    if res.equals("{id: 0, tC: 22.9, tF: 73.1}") then
+      val request = CommandRequest("Shelly", "Main Room", res, Some("www.test.com"))
+      val c = Await.result(sdk.sendCommand(request, commandService), 2.seconds)
   }
+ */
 
 }
 

@@ -26,7 +26,7 @@ object ConfigurationEntity {
         eventHandler = (state, event) => eventHandler(state, event)
       )
         .withTagger(_ => Set(calculateTag(tenantId, tags)))
-        .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 5))
+        //.withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 5))
         .onPersistFailure(
           SupervisorStrategy.restartWithBackoff(
             minBackoff = 10.seconds,
