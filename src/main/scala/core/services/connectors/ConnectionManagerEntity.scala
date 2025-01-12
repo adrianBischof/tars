@@ -82,7 +82,8 @@ object ConnectionManagerEntity {
   }
 
   private def persistData(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]): Effect[Event, State] = {
-    Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestampStart, System.nanoTime())).thenReply(replyTo)(_ => Ack)
+    //Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestampStart, System.nanoTime())).thenReply(replyTo)(_ => Ack)
+    Effect.none.thenReply(replyTo)(_ => Ack)
   }
 
   private def initStream(replyTo: ActorRef[Ack]): Effect[Event, State] = {
