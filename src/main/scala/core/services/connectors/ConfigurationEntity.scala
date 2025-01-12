@@ -40,7 +40,8 @@ object ConfigurationEntity {
     command match {
       case SetConfig(key, value, replyTo) =>
         if state.data.contains(key) then Effect.none.thenReply(replyTo)(_ => FailureEvent("Could not provision device: device_id already exists!"))
-        else Effect.persist(ConfigUpdatedEvent(key, value)).thenReply(replyTo)(_ => SuccessEvent(s"Device $key provisioned!"))
+        //else Effect.persist(ConfigUpdatedEvent(key, value)).thenReply(replyTo)(_ => SuccessEvent(s"Device $key provisioned!"))
+        Effect.none.thenReply(replyTo)(_ => SuccessEvent(s"Device $key provisioned!"))
 
       case RemoveConfig(key, replyTo) =>
         if state.data.contains(key) then
