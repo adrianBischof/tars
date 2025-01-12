@@ -26,7 +26,7 @@ object Main {
     try {
       val sharding: ClusterSharding = ClusterSharding(system)
 
-      
+
       implicit val ec: ExecutionContext = system.executionContext
 
       GlobalSettings.loggingSQLAndTime = LoggingSQLAndTimeSettings(

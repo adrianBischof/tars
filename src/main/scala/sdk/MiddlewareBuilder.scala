@@ -96,7 +96,6 @@ class MiddlewareBuilder(appConfig: String) {
     a.getLatestRecord(device).mapTo[grpc.projection.DeviceRecords.Record].map {
       r => r.data
     }
-
   }
 
   def getSystem: ActorSystem[Nothing] = {
@@ -126,7 +125,7 @@ def SDK(): Unit = {
       val request = CommandRequest("Shelly", "Main Room", res, Some("www.test.com"))
       val c = Await.result(sdk.sendCommand(request, commandService), 2.seconds)
   }
- */
 
+*/
 }
 
