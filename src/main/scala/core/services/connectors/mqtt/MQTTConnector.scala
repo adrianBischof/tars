@@ -60,7 +60,7 @@ class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManag
 
     mqttSource
       .via(killSwitch.flow)
-      .mapAsync(16) { messageWithAck =>
+      .mapAsync(8) { messageWithAck =>
         messageWithAck.ack().map(_ => messageWithAck.message)
       }
       .runWith(actorSink)
