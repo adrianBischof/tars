@@ -17,18 +17,22 @@ class MqttConnectionManagerQueryImpl(system: ActorSystem[_]) extends DeviceRecor
     Future {
       ScalikeJdbcSession.withSession { session =>
         session.db.readOnly { implicit dbSession =>
-          sql"""
-               SELECT * from device_records where device_id = ${in.deviceId}
-             """.map{ result =>
-            Record(
-              data = result.string("data"),
-              timestamp = result.string("timestamp_start"),
-              info = result.string("info"),
-              device = Some(Device(deviceId = result.string("device_id"), deviceName = Some(result.string("device_name")))))
-          }.list.apply().last
+          val result =
+            sql"""
+               SELECT * from device_records where device_id = ${in.deviceId} LIMIT 1
+             """.map { result =>
+              Record(
+                data = result.string("data"),
+                timestamp = result.string("timestamp_start"),
+                info = result.string("info"),
+                device = Some(Device(deviceId = result.string("device_id"), deviceName = Some(result.string("device_name")))))
+            }.single.apply()
+
+          result match
+            case Some(record: Record) => record
+            case None => NoSuchElementException(s"No records found for device ID: ${in.deviceId}")
         }
       }
-
-    }
+    }(jdbcExecutor)
   }
 }
