@@ -45,7 +45,7 @@ class MiddlewareBuilder(appConfig: String) {
   ScalikeJdbcSetup.init(system)
   SchemaUtils.createIfNotExists()
 
-  IoTProvisioning.start(system, sharding, eC)
+  IoTProvisioning.start(system, sharding)
 
 
 

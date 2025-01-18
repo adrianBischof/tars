@@ -42,7 +42,7 @@ object Main {
       ScalikeJdbcSetup.init(system)
       SchemaUtils.createIfNotExists()
       
-      IoTProvisioning.start(system, sharding, ec)
+      IoTProvisioning.start(system, sharding)
       Command.start(system, sharding, ec) // CQRS: WRITE Side
 
 

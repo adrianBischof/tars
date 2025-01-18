@@ -17,7 +17,6 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
   import concurrent.duration.DurationInt
   
   implicit val timeout: Timeout = 5.seconds // timeout after 2 seconds with no response
-
   implicit val executionContext: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.blocking-io-dispatcher"))
 
   shardRegion.init(Entity(ConnectionManagerEntity.TypeKey)(eCtx => ConnectionManagerEntity(eCtx.entityId)))

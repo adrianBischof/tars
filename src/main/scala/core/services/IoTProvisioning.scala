@@ -1,6 +1,6 @@
 package core.services
 
-import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
@@ -13,8 +13,10 @@ import scala.util.{Failure, Success}
 
 object IoTProvisioning {
 
-  def start(implicit system: ActorSystem[_], sharding: ClusterSharding, ec: ExecutionContext): Future[Http.ServerBinding] = {
+  def start(implicit system: ActorSystem[_], sharding: ClusterSharding): Future[Http.ServerBinding] = {
 
+    implicit val executionContext: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.blocking-io-dispatcher"))
+    
     val provisioningService: HttpRequest => Future[HttpResponse] = DeviceProvisioningServiceHandler.withServerReflection(
       new IoTProvisioningAPI()
     )
@@ -34,7 +36,6 @@ object IoTProvisioning {
         system.log.error("Failed to bind gRPC endpoint, terminating system", ex)
         system.terminate()
     }
-
     binding
   }
 }
