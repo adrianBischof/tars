@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Query {
 
-  def start(repository: MqttConnectionManagerQueryImpl)(implicit ex: ExecutionContext, system: ActorSystem[_]): Unit = {
+  def start(repository: MqttConnectionManagerQueryImpl)(implicit system: ActorSystem[_]): Unit = {
 
     implicit val ec: ExecutionContext = system.executionContext
 

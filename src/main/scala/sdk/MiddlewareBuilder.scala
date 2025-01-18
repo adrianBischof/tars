@@ -83,7 +83,7 @@ class MiddlewareBuilder(appConfig: String) {
   }
 
   def withCommandService(): CommandAPI = {
-    Command.start(system, sharding, eC)
+    Command.start(system, sharding)
     new CommandAPI()
   }
 
