@@ -17,9 +17,7 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding) extends DevicePr
   import concurrent.duration.DurationInt
   
   implicit val timeout: Timeout = 5.seconds // timeout after 2 seconds with no response
-
-  val executor = Executors.newFixedThreadPool(10)
-  implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(executor) // adapt threading model -> work stealing thread model is used by default
+  implicit val executionContext: ExecutionContext = ExecutionContext.global // adapt threading model -> work stealing thread model is used by default
 
   shardRegion.init(Entity(ConnectionManagerEntity.TypeKey)(eCtx => ConnectionManagerEntity(eCtx.entityId)))
   shardRegion.init(Entity(ConfigurationEntity.TypeKey)(eCtx => ConfigurationEntity(eCtx.entityId)))
