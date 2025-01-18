@@ -1,6 +1,6 @@
 package core.services
 
-import akka.actor.typed.ActorRef
+import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
 import akka.util.Timeout
 import core.services.connectors.{ConfigurationEntity, ConnectionManagerEntity, GrpcConfig, MqttConfig}
@@ -11,13 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 
-class IoTProvisioningAPI(implicit shardRegion: ClusterSharding) extends DeviceProvisioningService {
+class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSystem[_]) extends DeviceProvisioningService {
 
   
   import concurrent.duration.DurationInt
   
   implicit val timeout: Timeout = 5.seconds // timeout after 2 seconds with no response
-  implicit val executionContext: ExecutionContext = ExecutionContext.global // adapt threading model -> work stealing thread model is used by default
+
+  implicit val executionContext: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.blocking-io-dispatcher"))
 
   shardRegion.init(Entity(ConnectionManagerEntity.TypeKey)(eCtx => ConnectionManagerEntity(eCtx.entityId)))
   shardRegion.init(Entity(ConfigurationEntity.TypeKey)(eCtx => ConfigurationEntity(eCtx.entityId)))
