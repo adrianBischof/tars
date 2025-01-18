@@ -44,7 +44,7 @@ object ConnectionManagerEntity {
       case Complete => streamComplete()(ctx)
       case Fail(ex) => streamFailed(ex)(ctx)
       case ProcessRecord(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo) =>
-        //ctx.log.info(s"Got sensor_reading from $tenantId, $deviceId with $data and Timestamp Start: $timestampStart")
+        ctx.log.info(s"Got sensor_reading from $tenantId, $deviceId with $data and Timestamp Start: $timestampStart")
         persistData(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo)
       case InstantiateMqttConnector(config, replyTo) =>
         //instantiateMqttConnector(config, ctx)
@@ -81,8 +81,7 @@ object ConnectionManagerEntity {
   }
 
   private def persistData(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]): Effect[Event, State] = {
-    //Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestampStart, System.nanoTime())).thenReply(replyTo)(_ => Ack)
-    Effect.none.thenReply(replyTo)(_ => Ack)
+    Effect.persist(RecordProcessed(deviceId, tenantId, deviceName, data, info, timestampStart, System.nanoTime())).thenReply(replyTo)(_ => Ack)
   }
 
   private def initStream(replyTo: ActorRef[Ack]): Effect[Event, State] = {
