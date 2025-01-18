@@ -9,7 +9,6 @@ import akka.stream.{Materializer, SystemMaterializer}
 import core.serializer.CborSerializable
 import core.services.connectors.mqtt.MQTTConnector
 
-import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 

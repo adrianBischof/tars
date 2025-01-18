@@ -52,6 +52,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
 
       "org.postgresql" % "postgresql" % PostgreSQL,
+      "com.zaxxer" % "HikariCP" % "5.0.1",
       "org.scalikejdbc" %% "scalikejdbc" % ScalikeJdbcVersion,
       "org.scalikejdbc" %% "scalikejdbc-test"   % ScalikeJdbcVersion   % Test,
       "org.scalikejdbc" %% "scalikejdbc-config" % ScalikeJdbcVersion,
