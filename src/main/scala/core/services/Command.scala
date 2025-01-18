@@ -11,7 +11,9 @@ import scala.util.{Failure, Success}
 
 object Command {
 
-  def start(implicit system: ActorSystem[_], sharding: ClusterSharding, ec: ExecutionContext): Future[Http.ServerBinding] = {
+  def start(implicit system: ActorSystem[_], sharding: ClusterSharding): Future[Http.ServerBinding] = {
+
+    implicit val ec: ExecutionContext = system.executionContext
 
     val provisioningService: HttpRequest => Future[HttpResponse] = CommandServiceHandler.withServerReflection(
       new CommandAPI()

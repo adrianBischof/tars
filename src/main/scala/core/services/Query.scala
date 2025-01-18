@@ -12,6 +12,8 @@ object Query {
 
   def start(repository: MqttConnectionManagerQueryImpl)(implicit ex: ExecutionContext, system: ActorSystem[_]): Unit = {
 
+    implicit val ec: ExecutionContext = system.executionContext
+
     val projectionService: HttpRequest => Future[HttpResponse] = DeviceRecordsHandler.withServerReflection(
       new MqttConnectionManagerQueryImpl(system))
 
