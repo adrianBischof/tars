@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MqttConnectionManagerQueryImpl(system: ActorSystem[_]) extends DeviceRecords.DeviceRecords {
 
-  implicit private val jdbcExecutor: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.db-dispatcher"))
+  private val jdbcExecutor: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.db-dispatcher"))
 
 
   override def getLatestRecord(in: Device): Future[Record] = {
