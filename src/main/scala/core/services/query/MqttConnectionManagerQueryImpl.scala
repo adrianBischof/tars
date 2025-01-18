@@ -20,7 +20,7 @@ class MqttConnectionManagerQueryImpl(system: ActorSystem[_]) extends DeviceRecor
         session.db.readOnly { implicit dbSession =>
           val result =
             sql"""
-               SELECT * from device_records where device_id = ${in.deviceId} LIMIT 1
+               SELECT * from device_records where device_id = ${in.deviceId} ORDER BY timestamp_start DESC LIMIT 1
              """.map { result =>
               Record(
                 data = result.string("data"),
