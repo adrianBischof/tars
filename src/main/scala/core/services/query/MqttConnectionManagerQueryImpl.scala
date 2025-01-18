@@ -1,5 +1,6 @@
 package core.services.query
 
+import java.util.NoSuchElementException
 import akka.actor.typed.{ActorSystem, DispatcherSelector}
 import core.repository.scalike.ScalikeJdbcSession
 import grpc.projection.DeviceRecords
@@ -30,7 +31,7 @@ class MqttConnectionManagerQueryImpl(system: ActorSystem[_]) extends DeviceRecor
 
           result match
             case Some(record: Record) => record
-            case None => NoSuchElementException(s"No records found for device ID: ${in.deviceId}")
+            case None => Record()
         }
       }
     }(jdbcExecutor)
