@@ -1,6 +1,7 @@
 package core.repository.scalike
 
-import scalikejdbc.DB
+import scalikejdbc.{ConnectionPool, DB}
+
 import java.sql.Connection
 import akka.japi.function.Function
 import akka.projection.jdbc.JdbcSession
@@ -10,7 +11,7 @@ import akka.projection.jdbc.JdbcSession
  * Provide database connections within a transaction to Akka Projections.
  */
 final class ScalikeJdbcSession extends JdbcSession {
-  val db: DB = DB.connect()
+  val db: DB = DB.connect(ConnectionPool.borrow())
   db.autoClose(false)
 
   override def withConnection[Result](func: Function[Connection, Result]): Result = {
