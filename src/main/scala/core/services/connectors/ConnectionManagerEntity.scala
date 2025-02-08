@@ -47,7 +47,7 @@ object ConnectionManagerEntity {
         ctx.log.info(s"Got sensor_reading from $tenantId, $deviceId with $data and Timestamp Start: $timestampStart")
         persistData(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo)
       case InstantiateMqttConnector(config, replyTo) =>
-        //instantiateMqttConnector(config, ctx)
+        instantiateMqttConnector(config, ctx)
         Effect.persist(PersistedConnection(config)).thenReply(replyTo)(_ => SuccessEvent("Created Connector"))
       case DeleteMqttConnector(deviceId, replyTo) =>
         Effect.persist(DeletedMqttConnection(deviceId)).thenReply(replyTo)(_ => SuccessEvent("Deleted Connector"))
@@ -73,7 +73,6 @@ object ConnectionManagerEntity {
       case CommandSentToDevice(deviceId, message) => 
         if state.streams.contains(deviceId) then state.streams(deviceId).publish(message)
         state
-        
   }
   
   private def commandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]): Effect[Event, State] = {
@@ -119,10 +118,10 @@ object ConnectionManagerEntity {
   case class DeleteMqttConnector(deviceId: String, replyTo: ActorRef[Response]) extends Command
   case class SendCommandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]) extends Command
 
-
   trait Response
   case class SuccessEvent(response: String) extends Response
   case class FailureEvent(response: String) extends Response
+  
 
   trait Ack
   object Ack extends Ack

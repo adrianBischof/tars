@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option java_package = "grpc.entity.State";
+option java_outer_classname = "StateUpdate";
+
+service StateService {
+
+  rpc UpdateState(StateUpdate) returns (StateResponse) {}
+
+}
+
+message StateUpdate {
+  string device_id = 1;
+  string tenant_id = 2;
+  string state = 3;
+  string deviceName = 4;
+  string info = 5;
+  
+}
+
+message StateResponse {
+  string status = 1;
+  string payload = 2;
+}

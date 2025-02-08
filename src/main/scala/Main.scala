@@ -13,7 +13,7 @@ import core.projection.to.jdbc.{MqttConnectionManagerProjection, MqttConnectionM
 import core.repository.scalike.ScalikeJdbcSetup
 import core.services.query.MqttConnectionManagerQueryImpl
 import scalikejdbc.{GlobalSettings, LoggingSQLAndTimeSettings}
-import core.services.{Command, IoTProvisioning, Query}
+import core.services.{Command, IoTProvisioning, Query, State}
 
 object Main {
 
@@ -41,6 +41,7 @@ object Main {
       
       IoTProvisioning.start(system, sharding)
       Command.start(system, sharding) // CQRS: WRITE Side
+      State.start(system, sharding) // CQRS: WRITE side
 
 
 
