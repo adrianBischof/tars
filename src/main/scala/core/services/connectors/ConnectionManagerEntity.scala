@@ -74,7 +74,7 @@ object ConnectionManagerEntity {
         if state.streams.contains(deviceId) then state.streams(deviceId).publish(message)
         state
   }
-  
+
   private def commandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]): Effect[Event, State] = {
     Effect.persist(CommandSentToDevice(deviceId, message)).thenReply(replyTo)(_ => SuccessEvent("ok"))
   }
@@ -121,12 +121,11 @@ object ConnectionManagerEntity {
   trait Response
   case class SuccessEvent(response: String) extends Response
   case class FailureEvent(response: String) extends Response
-  
+
 
   trait Ack
-  object Ack extends Ack
-
   trait Event extends CborSerializable
+  object Ack extends Ack with Event
   case class RecordProcessed(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, timestampEnd: Long) extends Event
   private case class PersistedConnection(config: MqttConfig) extends Event
   private case class DeletedMqttConnection(deviceId: String) extends Event
