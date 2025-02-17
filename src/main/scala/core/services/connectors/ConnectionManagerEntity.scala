@@ -52,6 +52,7 @@ object ConnectionManagerEntity {
       case DeleteMqttConnector(deviceId, replyTo) =>
         Effect.persist(DeletedMqttConnection(deviceId)).thenReply(replyTo)(_ => SuccessEvent("Deleted Connector"))
       case SendCommandToDevice(deviceId, message, replyTo) => commandToDevice(deviceId, message, replyTo)
+      case GetState(deviceId, replyTo) => getState(deviceId, state, replyTo)
   }
 
   private def eventHandler(state: State, event: Event, ctx: ActorContext[Command]): State = {
@@ -73,6 +74,11 @@ object ConnectionManagerEntity {
       case CommandSentToDevice(deviceId, message) => 
         if state.streams.contains(deviceId) then state.streams(deviceId).publish(message)
         state
+  }
+  
+  private def getState(deviceId: String, state: State, replyTo: ActorRef[Response]): Effect[Event, State] = {
+    Effect.none.thenReply(replyTo)(_ => if state.data.contains(deviceId) then SuccessEvent(state.data(deviceId)) else FailureEvent("no such device"))
+    
   }
 
   private def commandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]): Effect[Event, State] = {
@@ -117,10 +123,12 @@ object ConnectionManagerEntity {
   case object Complete extends Command
   case class DeleteMqttConnector(deviceId: String, replyTo: ActorRef[Response]) extends Command
   case class SendCommandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]) extends Command
+  case class GetState(deviceId: String,  replyTo: ActorRef[Response]) extends Command
 
   trait Response
   case class SuccessEvent(response: String) extends Response
   case class FailureEvent(response: String) extends Response
+  
 
 
   trait Ack

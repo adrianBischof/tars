@@ -6,6 +6,7 @@ option java_outer_classname = "StateUpdate";
 service StateService {
 
   rpc UpdateState(StateUpdate) returns (StateResponse) {}
+  rpc GetState(DeviceID) returns (StateResponse) {}
 
 }
 
@@ -16,6 +17,12 @@ message StateUpdate {
   string deviceName = 4;
   string info = 5;
   
+}
+
+message DeviceID {
+  string device_id = 1;
+  optional string device_name = 2;
+  string tenant_id = 3;
 }
 
 message StateResponse {

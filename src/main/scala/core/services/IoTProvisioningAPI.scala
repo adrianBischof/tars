@@ -6,7 +6,6 @@ import akka.util.Timeout
 import core.services.connectors.{ConfigurationEntity, ConnectionManagerEntity, GrpcConfig, MqttConfig}
 import grpc.entity.DeviceProvisioning.{DeviceProvisioningService, ID, MQTT, MQTTConfigResponse, Response, gRPC, gRPCConfigResponse}
 
-import java.util.concurrent.Executors
 import scala.concurrent.{ExecutionContext, Future}
 
 

@@ -4,7 +4,7 @@ import akka.actor.typed.ActorRef
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
 import akka.util.Timeout
 import core.services.connectors.ConnectionManagerEntity
-import grpc.entity.State.{StateResponse, StateService, StateUpdate}
+import grpc.entity.State.{DeviceID, StateResponse, StateService, StateUpdate}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -26,6 +26,17 @@ class StateAPI(implicit shardRegion: ClusterSharding) extends StateService {
 
     connectionEntity.ask(utilityUpdateState(in)).mapTo[ConnectionManagerEntity.Ack].map {
       case ConnectionManagerEntity.Ack => StateResponse("ok", in.state)
+    }
+  }
+
+  override def getState(in: DeviceID): Future[StateResponse] = {
+    val connectionEntity = shardRegion.entityRefFor(ConnectionManagerEntity.TypeKey, in.tenantId)
+
+    def utilityGetState(in: DeviceID)(replyTo: ActorRef[ConnectionManagerEntity.Response]) =
+      ConnectionManagerEntity.GetState(in.deviceId+in.tenantId, replyTo)
+
+    connectionEntity.ask(utilityGetState(in)).mapTo[ConnectionManagerEntity.Response].map {
+      case ConnectionManagerEntity.SuccessEvent(data) => StateResponse("ok", data)
     }
   }
 }
