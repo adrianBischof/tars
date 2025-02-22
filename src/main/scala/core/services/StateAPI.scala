@@ -37,6 +37,7 @@ class StateAPI(implicit shardRegion: ClusterSharding) extends StateService {
 
     connectionEntity.ask(utilityGetState(in)).mapTo[ConnectionManagerEntity.Response].map {
       case ConnectionManagerEntity.SuccessEvent(data) => StateResponse("ok", data)
+      case ConnectionManagerEntity.FailureEvent(data) => StateResponse("failure", data)
     }
   }
 }

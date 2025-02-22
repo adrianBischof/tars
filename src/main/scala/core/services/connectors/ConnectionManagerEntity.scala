@@ -125,7 +125,7 @@ object ConnectionManagerEntity {
   case class SendCommandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]) extends Command
   case class GetState(deviceId: String,  replyTo: ActorRef[Response]) extends Command
 
-  trait Response
+  trait Response extends CborSerializable
   case class SuccessEvent(response: String) extends Response
   case class FailureEvent(response: String) extends Response
   
