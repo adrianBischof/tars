@@ -92,7 +92,7 @@ object ConfigurationEntity {
   private case class ConfigUpdatedEvent(key: String, value: ConfigurationValue) extends Event with CborSerializable
   private case class ConfigRemovedEvent(key: String) extends Event with CborSerializable
 
-  trait Response
+  trait Response extends CborSerializable
   case class SuccessEvent(response: String) extends Response
   case class FailureEvent(response: String) extends Response
   case class ConfigurationResponse(state: State) extends Response
