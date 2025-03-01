@@ -70,7 +70,7 @@ object ConnectionManagerEntity {
         implicit val system: ActorSystem[_] = ctx.system
         implicit val ec: ExecutionContext = ctx.executionContext
         implicit val mat: Materializer = SystemMaterializer(system).materializer
-c
+        
         val conn = MQTTConnector(config.value, ctx.self)
         conn.subscribe()
         state.addConnection(config.value.deviceId, conn)
