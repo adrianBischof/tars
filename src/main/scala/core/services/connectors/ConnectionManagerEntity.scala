@@ -3,7 +3,7 @@ package core.services.connectors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior, SupervisorStrategy}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
-import akka.persistence.typed.PersistenceId
+import akka.persistence.typed.{PersistenceId, RecoveryCompleted}
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
 import akka.stream.{Materializer, SystemMaterializer}
 import core.serializer.CborSerializable
@@ -35,6 +35,13 @@ object ConnectionManagerEntity {
             randomFactor = 0.1
           )
         )
+        .receiveSignal {
+          case (state, RecoveryCompleted) =>
+            ctx.log.info("Recovery completed, restoring MQTT connections...")
+            state.streams.foreach { (_, config) =>
+              instantiateMqttConnector(config.asInstanceOf[MqttConfig], ctx)
+            }
+        }
     }
   }
 
@@ -63,7 +70,7 @@ object ConnectionManagerEntity {
         implicit val system: ActorSystem[_] = ctx.system
         implicit val ec: ExecutionContext = ctx.executionContext
         implicit val mat: Materializer = SystemMaterializer(system).materializer
-        
+c
         val conn = MQTTConnector(config.value, ctx.self)
         conn.subscribe()
         state.addConnection(config.value.deviceId, conn)
@@ -71,14 +78,14 @@ object ConnectionManagerEntity {
       case DeletedMqttConnection(deviceId) =>
         state.deleteConnection(deviceId)
 
-      case CommandSentToDevice(deviceId, message) => 
+      case CommandSentToDevice(deviceId, message) =>
         if state.streams.contains(deviceId) then state.streams(deviceId).publish(message)
         state
   }
-  
+
   private def getState(deviceId: String, state: State, replyTo: ActorRef[Response]): Effect[Event, State] = {
     Effect.none.thenReply(replyTo)(_ => if state.data.contains(deviceId) then SuccessEvent(state.data(deviceId)) else FailureEvent("no such device"))
-    
+
   }
 
   private def commandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]): Effect[Event, State] = {
@@ -110,35 +117,50 @@ object ConnectionManagerEntity {
     implicit val mat: Materializer = SystemMaterializer(system).materializer
 
     val conn = MQTTConnector(config.value, ctx.self)
-    
+
     conn.terminate()
   }
 
 
   sealed trait Command extends CborSerializable
+
   case class InstantiateMqttConnector(config: MqttConfig, replyTo: ActorRef[Response]) extends Command
+
   final case class ProcessRecord(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]) extends Command
+
   case class Init(ackTo: ActorRef[Ack]) extends Command
+
   case class Fail(ex: Throwable) extends Command
+
   case object Complete extends Command
+
   case class DeleteMqttConnector(deviceId: String, replyTo: ActorRef[Response]) extends Command
+
   case class SendCommandToDevice(deviceId: String, message: String, replyTo: ActorRef[Response]) extends Command
-  case class GetState(deviceId: String,  replyTo: ActorRef[Response]) extends Command
+
+  case class GetState(deviceId: String, replyTo: ActorRef[Response]) extends Command
 
   trait Response extends CborSerializable
+
   case class SuccessEvent(response: String) extends Response
+
   case class FailureEvent(response: String) extends Response
-  
 
 
   trait Ack
+
   trait Event extends CborSerializable
+
   object Ack extends Ack with Event
+
   case class RecordProcessed(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, timestampEnd: Long) extends Event
+
   private case class PersistedConnection(config: MqttConfig) extends Event
+
   private case class DeletedMqttConnection(deviceId: String) extends Event
+
   private case class CommandSentToDevice(deviceId: String, message: String) extends Event
-  
+
 
   final case class State(data: Map[String, String], streams: Map[String, Connectable]) extends CborSerializable {
 
@@ -147,8 +169,8 @@ object ConnectionManagerEntity {
 
     // Update data map by adding or updating a key-value pair
     def updateData(key: String, value: String): State = copy(data = data + (key -> value))
-    
-    def addConnection(key: String, connection: Connectable): State = copy(streams = streams + (key -> connection) )
+
+    def addConnection(key: String, connection: Connectable): State = copy(streams = streams + (key -> connection))
 
     def deleteConnection(key: String): State =
       streams(key).terminate()
