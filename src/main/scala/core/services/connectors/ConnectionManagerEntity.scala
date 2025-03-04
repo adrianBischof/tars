@@ -115,7 +115,7 @@ object ConnectionManagerEntity {
 
     val conn = MQTTConnector(config.value, ctx.self)
 
-    conn.subscribe()
+    //conn.subscribe()
   }
 
 
