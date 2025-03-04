@@ -38,9 +38,6 @@ object ConnectionManagerEntity {
         .receiveSignal {
           case (state, RecoveryCompleted) =>
             ctx.log.info("Recovery completed, restoring MQTT connections...")
-            state.streams.foreach { (_, config) =>
-              instantiateMqttConnector(config.asInstanceOf[MqttConfig], ctx)
-            }
         }
     }
   }
@@ -70,7 +67,7 @@ object ConnectionManagerEntity {
         implicit val system: ActorSystem[_] = ctx.system
         implicit val ec: ExecutionContext = ctx.executionContext
         implicit val mat: Materializer = SystemMaterializer(system).materializer
-        
+
         val conn = MQTTConnector(config.value, ctx.self)
         conn.subscribe()
         state.addConnection(config.value.deviceId, conn)
@@ -118,7 +115,7 @@ object ConnectionManagerEntity {
 
     val conn = MQTTConnector(config.value, ctx.self)
 
-    conn.terminate()
+    conn.subscribe()
   }
 
 
