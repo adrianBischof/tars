@@ -1,24 +1,32 @@
 package core.services.connectors
 
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior, SupervisorStrategy}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior, DispatcherSelector, SupervisorStrategy}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
+import akka.cluster.sharding.typed.ShardingEnvelope
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
 import akka.persistence.typed.{PersistenceId, RecoveryCompleted}
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
 import akka.stream.{Materializer, SystemMaterializer}
+import akka.util.Timeout
 import core.serializer.CborSerializable
+import core.services.connectors.ConfigurationEntity.ConfigurationResponse
 import core.services.connectors.mqtt.MQTTConnector
+import grpc.entity.DeviceProvisioning.{ID, MQTT, MQTTConfigResponse}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
 
 object ConnectionManagerEntity {
-
+  
+  implicit val timeout: Timeout = 5.seconds // timeout after 2 seconds with no response
   val TypeKey: EntityTypeKey[Command] = EntityTypeKey[Command]("connection-manager-type-key")
+  private val streams: collection.mutable.Map[String, MQTTConnector] = collection.mutable.Map.empty // since this is probably global the key is the tenant id and the value the object.
 
   def apply(tenantId: String): Behavior[Command] = {
+
     Behaviors.setup { ctx =>
+      val shardRegion = ClusterSharding(ctx.system).entityRefFor(ConfigurationEntity.TypeKey, tenantId)
       ctx.log.info(s"Inside: ${TypeKey}" + s" ${tenantId}")
       EventSourcedBehavior[Command, Event, State](
         PersistenceId(TypeKey.name, tenantId),
@@ -37,7 +45,14 @@ object ConnectionManagerEntity {
         )
         .receiveSignal {
           case (state, RecoveryCompleted) =>
-            ctx.log.info("Recovery completed, restoring MQTT connections...")
+            def utilityGetConfigs()(replyTo: ActorRef[ConfigurationEntity.Response]) =
+              ConfigurationEntity.GetAllConfigs(replyTo)
+
+            shardRegion.ask(utilityGetConfigs()).mapTo[ConfigurationResponse].map {
+              case ConfigurationEntity.ConfigurationResponse(r) => 
+                if r.data.nonEmpty then r.data.foreach { (k,v) => instantiateMqttConnector(k,v, ctx)}
+            }(ctx.executionContext)
+          ctx.log.info("Recovery completed, restoring MQTT connections...")
         }
     }
   }
@@ -60,19 +75,11 @@ object ConnectionManagerEntity {
 
   private def eventHandler(state: State, event: Event, ctx: ActorContext[Command]): State = {
 
-    val streams: collection.mutable.Map[String, MQTTConnector] = collection.mutable.Map.empty // since this is probably global the key is the tenant id and the value the object.
-
     event match
       case RecordProcessed(deviceId, tenantId, device_name, data, info, timestampStart, timestampEnd) => state.updateData(deviceId + tenantId, data)
 
       case PersistedConnection(config) =>
-        implicit val system: ActorSystem[_] = ctx.system
-        implicit val ec: ExecutionContext = ctx.executionContext
-        implicit val mat: Materializer = SystemMaterializer(system).materializer
-
-        val conn = MQTTConnector(config.value, ctx.self)
-        conn.subscribe()
-        streams.put(config.value.deviceId + "|" + config.value.tenantId, conn)
+        instantiateMqttConnector(config.deviceId, config, ctx)
         state
 
       case DeletedMqttConnection(deviceId, tenantId) =>
@@ -82,6 +89,19 @@ object ConnectionManagerEntity {
       case CommandSentToDevice(deviceId, message) =>
         if streams.contains(deviceId) then streams(deviceId).publish(message)
         state
+  }
+
+  private def instantiateMqttConnector(deviceId: String, config: MQTT, ctx: ActorContext[Command]): Unit = {
+    if (!streams.contains(deviceId)) {
+      ctx.log.info(s"Instantiating MQTT connection for device: $deviceId")
+      implicit val system: ActorSystem[_] = ctx.system
+      implicit val ec: ExecutionContext = ctx.executionContext
+      implicit val mat: Materializer = SystemMaterializer(system).materializer
+
+      val conn = MQTTConnector(config, ctx.self)
+      conn.subscribe()
+      streams.put(config.deviceId + "|" + config.tenantId, conn)
+    }
   }
 
   private def getState(deviceId: String, state: State, replyTo: ActorRef[Response]): Effect[Event, State] = {
@@ -115,7 +135,7 @@ object ConnectionManagerEntity {
 
   sealed trait Command extends CborSerializable
 
-  case class InstantiateMqttConnector(config: MqttConfig, replyTo: ActorRef[Response]) extends Command
+  case class InstantiateMqttConnector(config: MQTT, replyTo: ActorRef[Response]) extends Command
 
   final case class ProcessRecord(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, replyTo: ActorRef[Ack]) extends Command
 
@@ -146,7 +166,7 @@ object ConnectionManagerEntity {
 
   case class RecordProcessed(deviceId: String, tenantId: String, deviceName: String, data: String, info: String, timestampStart: Long, timestampEnd: Long) extends Event
 
-  private case class PersistedConnection(config: MqttConfig) extends Event
+  private case class PersistedConnection(config: MQTT) extends Event
 
   private case class DeletedMqttConnection(deviceId: String, tenantId: String) extends Event
 

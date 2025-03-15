@@ -33,6 +33,10 @@ object ConfigurationEntity {
             randomFactor = 0.1
           )
         )
+        .receiveSignal {
+          case (state, RecoveryCompleted) =>
+            ctx.log.info("Recovery completed, restoring settings connections...")
+        }
     }
   }
 
@@ -41,7 +45,6 @@ object ConfigurationEntity {
       case SetConfig(key, value, replyTo) =>
         if state.data.contains(key) then Effect.none.thenReply(replyTo)(_ => FailureEvent("Could not provision device: device_id already exists!"))
         else Effect.persist(ConfigUpdatedEvent(key, value)).thenReply(replyTo)(_ => SuccessEvent(s"Device $key provisioned!"))
-        //Effect.none.thenReply(replyTo)(_ => SuccessEvent(s"Device $key provisioned!"))
 
       case RemoveConfig(key, replyTo) =>
         if state.data.contains(key) then
@@ -54,7 +57,11 @@ object ConfigurationEntity {
         )
         else Effect.none.thenReply(replyTo)(_ => FailureEvent("Could not retrieve configuration for this device_id"))
 
-      case GetAllConfigs(replyTo) => Effect.none.thenReply(replyTo)(_ => ConfigurationResponse(state))
+      case GetAllConfigs(replyTo) =>
+        Effect.none.thenReply(replyTo) {_=>
+          print("Sending Configurations: state")
+          ConfigurationResponse(state)
+        }
     }
   }
 

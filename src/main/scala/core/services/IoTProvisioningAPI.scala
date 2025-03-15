@@ -1,6 +1,7 @@
 package core.services
 
 import akka.actor.typed.{ActorRef, ActorSystem, DispatcherSelector}
+import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
 import akka.util.Timeout
 import core.services.connectors.{ConfigurationEntity, ConnectionManagerEntity, GrpcConfig, MqttConfig}
@@ -18,8 +19,8 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
   implicit val timeout: Timeout = 5.seconds // timeout after 2 seconds with no response
   implicit val executionContext: ExecutionContext = system.dispatchers.lookup(DispatcherSelector.fromConfig("akka.blocking-io-dispatcher"))
 
-  shardRegion.init(Entity(ConnectionManagerEntity.TypeKey)(eCtx => ConnectionManagerEntity(eCtx.entityId)))
   shardRegion.init(Entity(ConfigurationEntity.TypeKey)(eCtx => ConfigurationEntity(eCtx.entityId)))
+  shardRegion.init(Entity(ConnectionManagerEntity.TypeKey)(eCtx => ConnectionManagerEntity(eCtx.entityId)))
 
 
   override def addBrokerConfig(in: MQTT): Future[Response] = {
@@ -32,7 +33,7 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
       ConfigurationEntity.SetConfig(in.deviceId, in, replyTo)
 
     def utilitySetConnector(in: MQTT)(replyTo: ActorRef[ConnectionManagerEntity.Response]) =
-      ConnectionManagerEntity.InstantiateMqttConnector(MqttConfig(in), replyTo)
+      ConnectionManagerEntity.InstantiateMqttConnector(in, replyTo)
 
     // Ensure that the entities for the given tenantId are available before proceeding
     configEntity.ask(utilitySetConfig(in)).flatMap {
@@ -80,7 +81,7 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
       //ConfigurationEntity.SetConfig(in.deviceId, GrpcConfig(in), replyTo)
 
     //configEntity.ask(utilityAddGrpcStream(in)).mapTo[ConfigurationEntity.Response].map(e => Response("ok", e.toString))
-    
+
     Future.successful(Response("not implemented yet"))
   }
   
