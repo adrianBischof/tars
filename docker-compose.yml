@@ -1,37 +1,86 @@
-version: '2.2'
+version: '3.8'  # Specify the Docker Compose version
+
 services:
   postgres-db:
     image: postgres:latest
     container_name: postgres-db
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       POSTGRES_DB: tars
       POSTGRES_USER: tars
       POSTGRES_PASSWORD: tars
     healthcheck:
-      test: [ 'CMD', 'pg_isready', "-q", "-d", "tars", "-U", "tars" ]
+      test: ["CMD", "pg_isready", "-q", "-d", "tars", "-U", "tars"]
       interval: 5s
       retries: 5
       start_period: 5s
       timeout: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"  # Limit CPU usage to 2 cores
+          memory: "4g"  # Limit memory usage to 4GB
+        reservations:
+          memory: "1g"  # Ensure at least 1GB of memory is reserved
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   eclipse-mosquitto:
+    image: eclipse-mosquitto:1.6.15
+    container_name: mosquitto
     stdin_open: true
     tty: true
     ports:
-      - 1883:1883
-      - 9001:9001
-    restart: unless-stopped
-    container_name: mosquitto
+      - "1883:1883"
+      - "9001:9001"
     volumes:
-      - /mosquitto/config:/mosquitto/config
-      - /mosquitto/data:/mosquitto/data
-      - /mosquitto/log:/mosquitto/log
-    image: eclipse-mosquitto
+      - /root/mosquitto/config:/mosquitto/config
+      - /root/mosquitto/data:/mosquitto/data
+      - /root/mosquitto/log:/mosquitto/log
     healthcheck:
-      test: [ "CMD-SHELL", "mosquitto -c /mosquitto/config/mosquitto.conf -v > /dev/null 2>&1 || exit 1" ]
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "healthcheck", "-W", "1"]
       interval: 10s
       retries: 3
       start_period: 10s
       timeout: 3s
+    restart: unless-stopped
+
+  influxdb2:
+    image: influxdb:2
+    container_name: influxdb2
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME_FILE: /run/secrets/influxdb2-admin-username
+      DOCKER_INFLUXDB_INIT_PASSWORD_FILE: /run/secrets/influxdb2-admin-password
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN_FILE: /run/secrets/influxdb2-admin-token
+      DOCKER_INFLUXDB_INIT_ORG: docs
+      DOCKER_INFLUXDB_INIT_BUCKET: home
+    secrets:
+      - influxdb2-admin-username
+      - influxdb2-admin-password
+      - influxdb2-admin-token
+    volumes:
+      - type: volume
+        source: influxdb2-data
+        target: /var/lib/influxdb2
+      - type: volume
+        source: influxdb2-config
+        target: /etc/influxdb2
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  influxdb2-data:
+  influxdb2-config:
+
+secrets:
+  influxdb2-admin-username:
+    file: ~/.env.influxdb2-admin-username
+  influxdb2-admin-password:
+    file: ~/.env.influxdb2-admin-password
+  influxdb2-admin-token:
+    file: ~/.env.influxdb2-admin-token

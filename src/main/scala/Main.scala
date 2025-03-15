@@ -26,18 +26,18 @@ object Main {
     try {
       val sharding: ClusterSharding = ClusterSharding(system)
 
-      GlobalSettings.loggingSQLAndTime = LoggingSQLAndTimeSettings(
-        enabled = true,
-        singleLineMode = true,
-        logLevel = "debug"
-      )
+      //GlobalSettings.loggingSQLAndTime = LoggingSQLAndTimeSettings(
+      //  enabled = false,
+      //  singleLineMode = true,
+      //  logLevel = "debug"
+      //)
       
       AkkaManagement(system).start()
       
       
       // ClusterBootstrap(system).start() TODO: when forming a cluster use Akka Discovery without seed node definition in application.conf
       ScalikeJdbcSetup.init(system)
-      SchemaUtils.createIfNotExists()
+      //SchemaUtils.createIfNotExists()
       
       IoTProvisioning.start(system, sharding)
       Command.start(system, sharding) // CQRS: WRITE Side

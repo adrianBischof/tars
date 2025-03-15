@@ -51,15 +51,17 @@ object ConnectionManagerEntity {
         ctx.log.info(s"Got sensor_reading from $tenantId, $deviceId with $data and Timestamp Start: $timestampStart")
         persistData(deviceId, tenantId, deviceName, data, info, timestampStart, replyTo)
       case InstantiateMqttConnector(config, replyTo) =>
-        instantiateMqttConnector(config, ctx)
         Effect.persist(PersistedConnection(config)).thenReply(replyTo)(_ => SuccessEvent("Created Connector"))
       case DeleteMqttConnector(deviceId, replyTo) =>
-        Effect.persist(DeletedMqttConnection(deviceId)).thenReply(replyTo)(_ => SuccessEvent("Deleted Connector"))
+        Effect.persist(DeletedMqttConnection(deviceId, tenantId)).thenReply(replyTo)(_ => SuccessEvent("Deleted Connector"))
       case SendCommandToDevice(deviceId, message, replyTo) => commandToDevice(deviceId, message, replyTo)
       case GetState(deviceId, replyTo) => getState(deviceId, state, replyTo)
   }
 
   private def eventHandler(state: State, event: Event, ctx: ActorContext[Command]): State = {
+
+    val streams: collection.mutable.Map[String, MQTTConnector] = collection.mutable.Map.empty // since this is probably global the key is the tenant id and the value the object.
+
     event match
       case RecordProcessed(deviceId, tenantId, device_name, data, info, timestampStart, timestampEnd) => state.updateData(deviceId + tenantId, data)
 
@@ -70,13 +72,15 @@ object ConnectionManagerEntity {
 
         val conn = MQTTConnector(config.value, ctx.self)
         conn.subscribe()
-        state.addConnection(config.value.deviceId, conn)
+        streams.put(config.value.deviceId + "|" + config.value.tenantId, conn)
+        state
 
-      case DeletedMqttConnection(deviceId) =>
-        state.deleteConnection(deviceId)
+      case DeletedMqttConnection(deviceId, tenantId) =>
+        if streams.contains(deviceId + "|" + tenantId) then streams(deviceId + "|" + tenantId).terminate()
+        state
 
       case CommandSentToDevice(deviceId, message) =>
-        if state.streams.contains(deviceId) then state.streams(deviceId).publish(message)
+        if streams.contains(deviceId) then streams(deviceId).publish(message)
         state
   }
 
@@ -106,16 +110,6 @@ object ConnectionManagerEntity {
   private def streamFailed(throwable: Throwable)(implicit ctx: ActorContext[Command]): Effect[Event, State] = {
     ctx.log.info(s"Received Fail Message from MQTTStream:[$throwable]", throwable)
     Effect.none
-  }
-
-  private def instantiateMqttConnector(config: MqttConfig, ctx: ActorContext[Command]): Unit = {
-    implicit val system: ActorSystem[_] = ctx.system
-    implicit val ec: ExecutionContext = ctx.executionContext
-    implicit val mat: Materializer = SystemMaterializer(system).materializer
-
-    val conn = MQTTConnector(config.value, ctx.self)
-
-    //conn.subscribe()
   }
 
 
@@ -154,28 +148,21 @@ object ConnectionManagerEntity {
 
   private case class PersistedConnection(config: MqttConfig) extends Event
 
-  private case class DeletedMqttConnection(deviceId: String) extends Event
+  private case class DeletedMqttConnection(deviceId: String, tenantId: String) extends Event
 
   private case class CommandSentToDevice(deviceId: String, message: String) extends Event
 
 
-  final case class State(data: Map[String, String], streams: Map[String, Connectable]) extends CborSerializable {
-
-    // Check if device exists in the data map
+  final case class State(data: Map[String, String]) extends CborSerializable {
     def deviceExists(key: String): Boolean = data.contains(key)
 
     // Update data map by adding or updating a key-value pair
     def updateData(key: String, value: String): State = copy(data = data + (key -> value))
 
-    def addConnection(key: String, connection: Connectable): State = copy(streams = streams + (key -> connection))
-
-    def deleteConnection(key: String): State =
-      streams(key).terminate()
-      copy(streams = streams.removed(key))
   }
 
   private object State {
-    val empty: State = State(Map.empty, Map.empty)
+    val empty: State = State(Map.empty)
   }
 
   val tags = Vector.tabulate(3)(i => s"connection-manager-tag-$i")

@@ -13,7 +13,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import core.projection.to.jdbc.{MqttConnectionManagerProjection, MqttConnectionManagerRepositoryImpl}
 import core.repository.scalike.ScalikeJdbcSetup
-import core.services.connectors.{ConfigurationEntity, ConfigurationValue, ConnectionManagerEntity, GrpcConfig, MqttConfig}
+import core.services.connectors.{ConfigurationEntity, ConfigurationValue, GrpcConfig, MqttConfig}
 import core.services.query.MqttConnectionManagerQueryImpl
 import core.services.{Command, CommandAPI, IoTProvisioning, IoTProvisioningAPI, Query}
 import grpc.entity.DeviceProvisioning.{CommandRequest, CommandResponse, MQTT}

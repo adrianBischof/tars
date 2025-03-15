@@ -19,7 +19,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManagerEntity.Command])(implicit system: ActorSystem[_], ec: ExecutionContext, mat: Materializer) extends Connectable {
+class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManagerEntity.Command])(implicit system: ActorSystem[_], ec: ExecutionContext, mat: Materializer) {
 
   private val subconnectionSettings = MqttConnectionSettings.create(config.server, config.tenantId + config.deviceId, new MemoryPersistence)
     .withCleanSession(config.cleanSession)
@@ -44,7 +44,7 @@ class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManag
   /** Creates a Flow an processes incoming messages from the MQTT source. Each
    * message payload is extracted and sent to the MqttConnectionManager actor.
    */
-  override def subscribe(): Unit = {
+  def subscribe(): Unit = {
 
     val actorSink = ActorSink.actorRefWithBackpressure(
       ref = connectionManagerRef,
@@ -72,7 +72,7 @@ class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManag
     Source.single(message).runWith(mqttSink)
   }
 
-  override def terminate(): Unit = {
+  def terminate(): Unit = {
     println(s"Kill - switch: ${killSwitch.name} triggered!") // TODO: proper logging
     killSwitch.shutdown()
   }

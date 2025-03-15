@@ -1,0 +1,5 @@
+ghz --insecure --async --proto ./protos/state.proto --call StateService/GetState --total 1000000 --data-file read.json -O json 65.109.222.201:9011 | http POST 65.109.0.195:80/api/projects/21/ingest
+
+ ghz --insecure --async --proto ./protos/state.proto --call StateService/UpdateState --total 100000 --data-file write.json -O json 65.109.222.201:9011 | http POST 65.109.0.195:80/api/projects/19/ingest
+
+ ghz --insecure --async --proto ./protos/provisioning.proto --call DeviceProvisioningService/AddBrokerConfig --total 400 --connections=1 -c 1 --data-file provisioning.json -O json 65.109.222.201:9009 |

@@ -50,9 +50,7 @@ object ConfigurationEntity {
 
       case GetConfig(key, replyTo) =>
         if state.data.contains(key) then Effect.none.thenReply(replyTo)(e => 
-          state.data(key) match
-            case MqttConfig(value) => MqttConfigurationResponse(value)
-            case GrpcConfig(value) => gRPCConfigurationResponse(value)
+         MqttConfigurationResponse(state.data(key))
         )
         else Effect.none.thenReply(replyTo)(_ => FailureEvent("Could not retrieve configuration for this device_id"))
 
@@ -66,7 +64,7 @@ object ConfigurationEntity {
       case ConfigRemovedEvent(key) => state.removeData(key)
   }
 
-  final case class State(data: Map[String, ConfigurationValue]) extends CborSerializable {
+  final case class State(data: Map[String, MQTT]) extends CborSerializable {
 
     // Check if device exists in the data map
     def deviceExists(key: String): Boolean = data.contains(key)
@@ -74,7 +72,7 @@ object ConfigurationEntity {
     def removeData(key: String): State = copy(data = data - key)
     
     // Update data map by adding or updating a key-value pair
-    def updateData(key: String, value: ConfigurationValue): State = copy(data = data + (key -> value))
+    def updateData(key: String, value: MQTT): State = copy(data = data + (key -> value))
   }
 
   private object State {
@@ -82,14 +80,14 @@ object ConfigurationEntity {
   }
 
   trait Command
-  case class SetConfig(key: String, value: ConfigurationValue, replyTo: ActorRef[Response]) extends Command with CborSerializable
+  case class SetConfig(key: String, value: MQTT, replyTo: ActorRef[Response]) extends Command with CborSerializable
   case class GetConfig(key: String, replyTo: ActorRef[Response]) extends Command with CborSerializable
   case class RemoveConfig(key: String, replyTo: ActorRef[Response]) extends Command with CborSerializable
   case class GetAllConfigs(replyTo: ActorRef[Response]) extends Command with CborSerializable
 
 
   trait Event
-  private case class ConfigUpdatedEvent(key: String, value: ConfigurationValue) extends Event with CborSerializable
+  private case class ConfigUpdatedEvent(key: String, value: MQTT) extends Event with CborSerializable
   private case class ConfigRemovedEvent(key: String) extends Event with CborSerializable
 
   trait Response extends CborSerializable

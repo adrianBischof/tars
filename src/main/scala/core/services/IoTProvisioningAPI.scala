@@ -29,7 +29,7 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
 
 
     def utilitySetConfig(in: MQTT)(replyTo: ActorRef[ConfigurationEntity.Response]) =
-      ConfigurationEntity.SetConfig(in.deviceId, MqttConfig(in), replyTo)
+      ConfigurationEntity.SetConfig(in.deviceId, in, replyTo)
 
     def utilitySetConnector(in: MQTT)(replyTo: ActorRef[ConnectionManagerEntity.Response]) =
       ConnectionManagerEntity.InstantiateMqttConnector(MqttConfig(in), replyTo)
@@ -76,10 +76,12 @@ class IoTProvisioningAPI(implicit shardRegion: ClusterSharding, system: ActorSys
     val connectionEntity = shardRegion.entityRefFor(ConnectionManagerEntity.TypeKey, in.tenantId)
 
 
-    def utilityAddGrpcStream(in: gRPC)(replyTo: ActorRef[ConfigurationEntity.Response]) =
-      ConfigurationEntity.SetConfig(in.deviceId, GrpcConfig(in), replyTo)
+    def utilityAddGrpcStream(in: gRPC)(replyTo: ActorRef[ConfigurationEntity.Response]) = ???
+      //ConfigurationEntity.SetConfig(in.deviceId, GrpcConfig(in), replyTo)
 
-    configEntity.ask(utilityAddGrpcStream(in)).mapTo[ConfigurationEntity.Response].map(e => Response("ok", e.toString))
+    //configEntity.ask(utilityAddGrpcStream(in)).mapTo[ConfigurationEntity.Response].map(e => Response("ok", e.toString))
+    
+    Future.successful(Response("not implemented yet"))
   }
   
   override def removeGRPCConfig(in: ID): Future[Response] = ???
