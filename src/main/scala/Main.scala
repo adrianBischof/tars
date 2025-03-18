@@ -51,7 +51,7 @@ object Main {
 
       ShardedDaemonProcess(system).init(
         name = "device-state-projection",
-        3,
+        10,
         index =>
           ProjectionBehavior(
             MqttConnectionManagerProjection.createProjectionFor(

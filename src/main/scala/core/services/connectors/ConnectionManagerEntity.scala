@@ -6,6 +6,7 @@ import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
 import akka.persistence.typed.{PersistenceId, RecoveryCompleted}
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
+import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.{Materializer, SystemMaterializer}
 import akka.util.Timeout
 import core.serializer.CborSerializable

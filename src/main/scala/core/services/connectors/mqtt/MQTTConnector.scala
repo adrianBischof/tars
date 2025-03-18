@@ -6,7 +6,7 @@ import akka.stream.alpakka.mqtt.*
 import akka.stream.alpakka.mqtt.scaladsl.{MqttMessageWithAck, MqttSink, MqttSource}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.stream.typed.scaladsl.ActorSink
-import akka.stream.{KillSwitches, Materializer, SharedKillSwitch}
+import akka.stream.{KillSwitches, Materializer, OverflowStrategy, SharedKillSwitch}
 import akka.util.ByteString
 import core.services.connectors.{Connectable, ConnectionManagerEntity}
 import grpc.entity.DeviceProvisioning.MQTT
@@ -60,9 +60,10 @@ class MQTTConnector(config: MQTT, connectionManagerRef: ActorRef[ConnectionManag
 
     mqttSource
       .via(killSwitch.flow)
-      .mapAsync(16) { messageWithAck =>
+      .mapAsync(8) { messageWithAck =>
         messageWithAck.ack().map(_ => messageWithAck.message)
       }
+      .buffer(1000, OverflowStrategy.backpressure)
       .runWith(actorSink)
   }
 

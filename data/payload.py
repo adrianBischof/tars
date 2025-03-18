@@ -14,7 +14,7 @@ entries = [{
         "topics": [
             "shellyplusht-e86beae8d784/status/temperature:0"
         ]
-    } for i in range(0, 401)]
+    } for i in range(0, 100)]
 
 # Save the entries to a JSON file
 file_path = './provisioning.json'
